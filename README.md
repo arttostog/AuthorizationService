@@ -1,6 +1,6 @@
 
 # Simple authorization service
 
-## About
+### About
 
-This service based on Spring framework and on MySQL database
+This micro-service based on Spring framework and on MySQL database
