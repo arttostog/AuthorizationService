@@ -1,6 +1,9 @@
 package me.arttostog.AuthorizationService.Controller;
 
-import me.arttostog.AuthorizationService.Repository.UserRepo;
+import com.google.gson.Gson;
+import com.google.gson.JsonParser;
+import me.arttostog.AuthorizationService.User.Repository.UserRepo;
+import me.arttostog.AuthorizationService.User.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,67 +26,78 @@ public class RequestControllerTests {
 	@Autowired
 	private MockMvc mvc;
 	@Autowired
-	private UserRepo Repo;
+	private UserRepo repo;
+	@Autowired
+	private Gson gson;
 
 	@Test
-	public void Registration_UserIsNull() throws Exception {
+	public void registration_UserIsNull() throws Exception {
 		MvcResult Result;
 
-		Result = mvc.perform(post("/register")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"username\": \"\", \"password\": \"pass\"}"))
-				.andExpect(status().isOk())
-				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("User is null!")) throw new Exception("User is not null!");
+		mvc.perform(post("/register"))
+				.andExpect(status().isBadRequest());
 
 		Result = mvc.perform(post("/register")
 						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"username\": \"user\", \"password\": \"\"}"))
+						.content("{\"username\": \"\", \"password\": \"pass\", \"mail\": \"mail\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("User is null!")) throw new Exception("User is not null!");
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(400,"User is null!")))) throw new Exception("User is not null!");
 
 		Result = mvc.perform(post("/register")
 						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"username\": \"user\", \"password\": \"pass\", \"id\": \"1\"}"))
+						.content("{\"username\": \"user\", \"password\": \"\", \"mail\": \"mail\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("User is null!")) throw new Exception("User is not null!");
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(400,"User is null!")))) throw new Exception("User is not null!");
+
+		Result = mvc.perform(post("/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"username\": \"user\", \"password\": \"pass\", \"mail\": \"\"}"))
+				.andExpect(status().isOk())
+				.andReturn();
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(400,"User is null!")))) throw new Exception("User is not null!");
 	}
 
 	@Test
-	public void RegistrationAndLogin_AlreadyRegisteredAndSuccess() throws Exception {
+	public void registration_AlreadyRegistered_Login_Success() throws Exception {
 		MvcResult Result;
 
-		String user = UUID.randomUUID().toString();
-		String pass = UUID.randomUUID().toString();
+		String user = UUID.randomUUID().toString(), pass = UUID.randomUUID().toString(), mail = UUID.randomUUID().toString();
 
 		Result = mvc.perform(post("/register")
 						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"username\": \""+ user +"\", \"password\": \""+ pass +"\"}"))
+						.content("{\"username\": \""+ user +"\", \"password\": \""+ pass +"\", \"mail\": \""+ mail +"\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("Registration completed successfully!")) throw new Exception("Registration completed is not successfully!");
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(200, "Registration completed successfully!"))))
+			throw new Exception("Registration completed is not successfully!");
 
 		Result = mvc.perform(post("/register")
 						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"username\": \""+ user +"\", \"password\": \""+ pass +"\"}"))
+						.content("{\"username\": \""+ user +"\", \"password\": \""+ pass +"\", \"mail\": \""+ mail +"\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("This username is already registered!")) throw new Exception("This username is not already registered!");
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(400, "This mail or username is already registered!"))))
+			throw new Exception("This username or password is not already registered!");
 
 		Result = mvc.perform(post("/login")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"username\": \""+ user +"\", \"password\": \""+ pass +"\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("Login successful!")) throw new Exception("Login is not successful!");
+		if (JsonParser.parseString(Result.getResponse().getContentAsString()).getAsJsonObject().get("code").getAsInt() != 200) throw new Exception("Login is not successful!");
 
-		Repo.deleteById(Repo.findByUsername(user).getId());
+		repo.deleteById(repo.findByUsername(user).getId());
 	}
 
 	@Test
-	public void Login_UserIsNull() throws Exception {
+	public void login_UserIsNull() throws Exception {
 		MvcResult Result;
 
 		mvc.perform(post("/login"))
@@ -94,23 +108,27 @@ public class RequestControllerTests {
 						.content("{\"username\": \"\", \"password\": \"password\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("User is null!")) throw new Exception("User is not null!");
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(400, "User is null!")))) throw new Exception("User is not null!");
 
 		Result = mvc.perform(post("/login")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"username\": \"user\", \"password\": \"\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("User is null!")) throw new Exception("User is not null!");
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(400, "User is null!")))) throw new Exception("User is not null!");
 	}
 
 	@Test
-	public void Login_WrongUsernameOrPassword() throws Exception {
+	public void login_WrongUsernameOrPassword() throws Exception {
 		MvcResult Result = mvc.perform(post("/login")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"username\": \""+ UUID.randomUUID() +"\", \"password\": \""+ UUID.randomUUID() +"\"}"))
 				.andExpect(status().isOk())
 				.andReturn();
-		if (!Result.getResponse().getContentAsString().equals("Wrong username or password!")) throw new Exception("Not wrong username or password!");
+		if (!Result.getResponse().getContentAsString().equals(
+				gson.toJson(new Response(400, "Wrong username or password!"))))
+			throw new Exception("Not wrong username or password!");
 	}
 }

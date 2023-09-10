@@ -19,6 +19,7 @@ dependencies {
 	implementation("mysql:mysql-connector-java:8.0.33")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("com.google.code.gson:gson:2.10.1")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
